@@ -14,4 +14,3 @@ public interface TodoRepository extends JpaRepository<Todo, UUID> {
             "OR LOWER(t.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Todo> findByKeyword(String keyword);
 }
-//
