@@ -1,252 +1,133 @@
-## Global Variables
+@RestController
+@RequestMapping("/api/cash-flows")
+public class CashFlowController {
 
-@BaseUrl = http://localhost:8080/api
+    private final CashFlowService service;
 
-
-## Cash Flow
-
-## ---------------------------------
-
-# @name PostCashFlow
-
-POST {{BaseUrl}}/cash-flows
-
-Content-Type: application/json
-
-
-{
-
-    "type": "Outflow", // Inflow atau Outflow
-
-    "source": "Tabungan", // Sumber pemasukan atau pengeluaran
-
-    "label": "alat-elektronik", // Kategori atau label
-
-    "amount": 10000000, // Nominal uang yang masuk atau keluar
-
-    "description": "Kebutuhan komputer server" // Deskripsi tambahan
-
-}
-
-
-# Response Example: PostCashFlow
-
-{
-
-    "status": "success",
-
-    "message": "Berhasil menambahkan data",
-
-    "data": {
-
-        "id": "c700f0d8-82bc-4410-af73-68f8f1f247d1"
-
+    public CashFlowController(CashFlowService service) {
+        this.service = service;
     }
 
-}
+    @PostMapping
+    public Map<String, Object> createCashFlow(@RequestBody CashFlow cashFlow) {
+        if (cashFlow.getType() == null || cashFlow.getType().isBlank() ||
+            cashFlow.getSource() == null || cashFlow.getSource().isBlank() ||
+            cashFlow.getLabel() == null || cashFlow.getLabel().isBlank() ||
+            cashFlow.getAmount() == null || cashFlow.getAmount() <= 0 ||
+            cashFlow.getDescription() == null || cashFlow.getDescription().isBlank()) {
 
-###
-
-
-# @name GetAllCashFlows
-
-GET {{BaseUrl}}/cash-flows
-
-###
-
-
-# @name GetAllCashFlowsWithSearch
-
-GET {{BaseUrl}}/cash-flows?search=elektronik
-
-
-# Response Example: GetAllCashFlows && GetAllCashFlowsWithSearch
-
-{
-
-    "status": "success",
-
-    "message": "Berhasil mengambil data",
-
-    "data": {
-
-        "cash_flows": [
-
-            {
-
-                "id": "c700f0d8-82bc-4410-af73-68f8f1f247d1",
-
-                "type": "Inflow",
-
-                "source": "Gaji",
-
-                "label": "gaji-bulanan",
-
-                "amount": 400000,
-
-                "description": "Menerima gaji bulanan dari perusahaan.",
-
-                "createdAt": "2025-11-05T03:24:31.134753",
-
-                "updatedAt": "2025-11-05T03:24:31.134753"
-
-            },
-
-            {
-
-                "id": "c700f0d8-82bc-4410-af73-68f8f1f247d2",
-
-                "type": "Outflow",
-
-                "source": "cash",
-
-                "label": "alat-mandi",
-
-                "amount": 100000,
-
-                "description": "Membeli kebutuhan alat mandi seperti sabun, odol.",
-
-                "createdAt": "2025-11-05T03:24:31.134753",
-
-                "updatedAt": "2025-11-05T03:24:31.134753"
-
-            },
-
-        ]
-
-    }
-
-}
-
-###
-
-
-@cashFlowId = {{GetAllCashFlows.response.body.data.cash_flows[0].id}}
-
-
-# @name GetCashFlowById
-
-GET {{BaseUrl}}/cash-flows/{{cashFlowId}}
-
-
-# Response Example: GetCashFlowById
-
-{
-
-    "status": "success",
-
-    "message": "Berhasil mengambil data",
-
-    "data": {
-
-        "cash_flow": {
-
-            "id": "c700f0d8-82bc-4410-af73-68f8f1f247d1",
-
-            "type": "Inflow",
-
-            "source": "Gaji",
-
-            "label": "gaji-bulanan",
-
-            "amount": 400000,
-
-            "description": "Menerima gaji bulanan dari perusahaan.",
-
-            "createdAt": "2025-11-05T03:24:31.134753",
-
-            "updatedAt": "2025-11-05T03:24:31.134753"
-
+            return Map.of(
+                "status", "fail",
+                "message", "Data tidak valid",
+                "data", null
+            );
         }
 
+        CashFlow created = service.createCashFlow(
+            cashFlow.getType(),
+            cashFlow.getSource(),
+            cashFlow.getLabel(),
+            cashFlow.getAmount(),
+            cashFlow.getDescription()
+        );
+
+        return Map.of(
+            "status", "success",
+            "message", "Berhasil menambahkan data",
+            "data", Map.of("id", created.getId())
+        );
     }
 
-}
-
-
-###
-
-
-# @name GetCashFlowLabels
-
-GET {{BaseUrl}}/cash-flows/labels
-
-
-# Response Example: GetCashFlowLabels
-
-{
-
-    "status": "success",
-
-    "message": "Berhasil mengambil data",
-
-    "data": {
-
-        "labels": [
-
-            "gaji-bulanan",
-
-            "alat-mandi",
-
-            "alat-elektronik"
-
-        ]
-
+    @GetMapping
+    public Map<String, Object> getAllCashFlows(@RequestParam(required = false) String search) {
+        List<CashFlow> cashFlows = service.getAllCashFlows(search);
+        return Map.of(
+            "status", "success",
+            "message", "Berhasil mengambil data",
+            "data", Map.of("cash_flows", cashFlows)
+        );
     }
 
+    @GetMapping("/{id}")
+    public Map<String, Object> getCashFlowById(@PathVariable UUID id) {
+        CashFlow cashFlow = service.getCashFlowById(id);
+        if (cashFlow == null) {
+            return Map.of(
+                "status", "fail",
+                "message", "Data tidak ditemukan",
+                "data", null
+            );
+        }
+        return Map.of(
+            "status", "success",
+            "message", "Berhasil mengambil data",
+            "data", Map.of("cash_flow", cashFlow)
+        );
+    }
+
+    @GetMapping("/labels")
+    public Map<String, Object> getCashFlowLabels() {
+        List<String> labels = service.getCashFlowLabels();
+        return Map.of(
+            "status", "success",
+            "message", "Berhasil mengambil data",
+            "data", Map.of("labels", labels)
+        );
+    }
+
+    @PutMapping("/{id}")
+    public Map<String, Object> updateCashFlow(@PathVariable UUID id, @RequestBody CashFlow cashFlow) {
+        if (cashFlow.getType() == null || cashFlow.getType().isBlank() ||
+            cashFlow.getSource() == null || cashFlow.getSource().isBlank() ||
+            cashFlow.getLabel() == null || cashFlow.getLabel().isBlank() ||
+            cashFlow.getAmount() == null || cashFlow.getAmount() <= 0 ||
+            cashFlow.getDescription() == null || cashFlow.getDescription().isBlank()) {
+
+            return Map.of(
+                "status", "fail",
+                "message", "Data tidak valid",
+                "data", null
+            );
+        }
+
+        CashFlow updated = service.updateCashFlow(
+            id,
+            cashFlow.getType(),
+            cashFlow.getSource(),
+            cashFlow.getLabel(),
+            cashFlow.getAmount(),
+            cashFlow.getDescription()
+        );
+
+        if (updated == null) {
+            return Map.of(
+                "status", "fail",
+                "message", "Data tidak ditemukan",
+                "data", null
+            );
+        }
+
+        return Map.of(
+            "status", "success",
+            "message", "Berhasil memperbarui data",
+            "data", Map.of("cash_flow", updated)
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public Map<String, Object> deleteCashFlow(@PathVariable UUID id) {
+        boolean deleted = service.deleteCashFlow(id);
+        if (!deleted) {
+            return Map.of(
+                "status", "fail",
+                "message", "Data tidak ditemukan",
+                "data", null
+            );
+        }
+        return Map.of(
+            "status", "success",
+            "message", "Berhasil menghapus data",
+            "data", null
+        );
+    }
 }
-
-###
-
-
-# @name PutCashFlowById
-
-PUT {{BaseUrl}}/cash-flows/{{cashFlowId}}
-
-Content-Type: application/json
-
-
-{
-
-    "type": "Inflow",
-
-    "source": "Freelance Project",
-
-    "label": "proyek-freelance",
-
-    "amount": 5000000,
-
-    "description": "Pendapatan dari proyek freelance pengembangan web."
-
-}
-
-
-# Response Example: PutCashFlowById
-
-{
-
-    "status": "success",
-
-    "message": "Berhasil memperbarui data"
-
-}
-
-###
-
-
-# @name DeleteCashFlowById
-
-DELETE {{BaseUrl}}/cash-flows/{{cashFlowId}}
-
-
-# Response Example: DeleteCashFlowById
-
-{
-
-    "status": "success",
-
-    "message": "Berhasil menghapus data"
-
-}
-
-###
